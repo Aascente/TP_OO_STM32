@@ -96,6 +96,8 @@ void PongGame::reset() {
 }
 
 void PongGame::render(Display& display) {
+    display.setFrameMeta(ScreenMode::PONG, static_cast<uint8_t>(state), 0, score, static_cast<uint8_t>(lives), 0);
+
     // Grey gradient background matching Java version
     display.drawGradientBackground(COLOR_GRAY_LIGHT, COLOR_GRAY_DARK, false);
 

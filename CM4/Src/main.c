@@ -2,56 +2,29 @@
   ******************************************************************************
   * @file    BSP/CM4/Src/main.c
   * @author  MCD Application Team
-  * @brief   main program for Cortex-M4
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2019 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
+  * @brief   Main program for Cortex-M4 (Dedicated Display & Rendering Core)
   ******************************************************************************
   */
 
-/* Includes ------------------------------------------------------------------*/
 #include "main.h"
 
-/** @addtogroup STM32H7xx_HAL_Examples
-  * @{
-  */
+#define HSEM_ID_0 (0U) /* HW semaphore 0: boot sync from CM7 */
 
-/** @addtogroup BSP
-  * @{
-  */
+void CM4_Renderer_Init(void);
+void CM4_Renderer_Loop(void);
+static void CM4_MPU_Config(void);
 
-/* Private typedef -----------------------------------------------------------*/
-/* Private define ------------------------------------------------------------*/
-#define HSEM_ID_0 (0U) /* HW semaphore 0*/
-/* Private macro -------------------------------------------------------------*/
-/* Private variables ---------------------------------------------------------*/
-/* Private function prototypes -----------------------------------------------*/
-
-/* Private functions ---------------------------------------------------------*/
-
-/**
-  * @brief  Main program
-  * @param  None
-  * @retval None
-  */
 int main(void)
 {
- /*HW semaphore Clock enable*/
+  /* HW semaphore Clock enable */
   __HAL_RCC_HSEM_CLK_ENABLE();
 
-  /* Activate HSEM notification for Cortex-M4*/
+  /* Activate HSEM notification for Cortex-M4 */
   HAL_HSEM_ActivateNotification(__HAL_HSEM_SEMID_TO_MASK(HSEM_ID_0));
 
   /*
-    Domain D2 goes to STOP mode (Cortex-M4 in deep-sleep) waiting for Cortex-M7 to
-    perform system initialization (system clock config, external memory configuration.. )
+    Domain D2 goes to STOP mode (Cortex-M4 in deep-sleep) waiting for Cortex-M7
+    to finish clock, SDRAM, LCD, and shared SRAM4 setup.
   */
   HAL_PWREx_ClearPendingEvent();
   HAL_PWREx_EnterSTOPMode(PWR_MAINREGULATOR_ON, PWR_STOPENTRY_WFE, PWR_D2_DOMAIN);
@@ -59,51 +32,61 @@ int main(void)
   /* Clear HSEM flag */
   __HAL_HSEM_CLEAR_FLAG(__HAL_HSEM_SEMID_TO_MASK(HSEM_ID_0));
 
- /* STM32H7xx HAL library initialization:
-       - Systick timer is configured by default as source of time base, but user
-         can eventually implement his proper time base source (a general purpose
-         timer for example or other time source), keeping in mind that Time base
-         duration should be kept 1ms since PPP_TIMEOUT_VALUEs are defined and
-         handled in milliseconds basis.
-       - Set NVIC Group Priority to 4
-       - Low Level Initialization
-     */
+  /* Update SystemCoreClock after CM7 configured PLL1 (200 MHz on CM4) */
+  SystemCoreClockUpdate();
+
+  /* Configure CM4 MPU for SDRAM (0xD0000000) & shared SRAM4 (0x38000000) */
+  CM4_MPU_Config();
+
+  /* Initialize Cortex-M4 HAL (SysTick at 1ms) */
   HAL_Init();
 
-  /* Infinite loop */
+  /* Initialize Display Renderer on CM4 */
+  CM4_Renderer_Init();
+
+  /* Render loop driven by CM7 frameSeq updates in D3 SRAM4 */
   while (1)
   {
+    CM4_Renderer_Loop();
   }
 }
 
+static void CM4_MPU_Config(void)
+{
+  MPU_Region_InitTypeDef MPU_InitStruct = {0};
 
+  HAL_MPU_Disable();
 
-#ifdef  USE_FULL_ASSERT
+  /* External SDRAM (32MB @ 0xD0000000): Normal non-cacheable bufferable for fast LCD pixel writes */
+  MPU_InitStruct.Enable           = MPU_REGION_ENABLE;
+  MPU_InitStruct.BaseAddress      = 0xD0000000U;
+  MPU_InitStruct.Size             = MPU_REGION_SIZE_32MB;
+  MPU_InitStruct.AccessPermission = MPU_REGION_FULL_ACCESS;
+  MPU_InitStruct.IsBufferable     = MPU_ACCESS_BUFFERABLE;
+  MPU_InitStruct.IsCacheable      = MPU_ACCESS_NOT_CACHEABLE;
+  MPU_InitStruct.IsShareable      = MPU_ACCESS_SHAREABLE;
+  MPU_InitStruct.Number           = MPU_REGION_NUMBER0;
+  MPU_InitStruct.TypeExtField     = MPU_TEX_LEVEL1;
+  MPU_InitStruct.SubRegionDisable = 0x00;
+  MPU_InitStruct.DisableExec      = MPU_INSTRUCTION_ACCESS_DISABLE;
+  HAL_MPU_ConfigRegion(&MPU_InitStruct);
 
-/**
-  * @brief  Reports the name of the source file and the source line number
-  *         where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
-  */
+  /* Shared D3 SRAM4 (64KB @ 0x38000000): Normal non-cacheable shareable */
+  MPU_InitStruct.BaseAddress      = 0x38000000U;
+  MPU_InitStruct.Size             = MPU_REGION_SIZE_64KB;
+  MPU_InitStruct.IsBufferable     = MPU_ACCESS_NOT_BUFFERABLE;
+  MPU_InitStruct.IsCacheable      = MPU_ACCESS_NOT_CACHEABLE;
+  MPU_InitStruct.IsShareable      = MPU_ACCESS_SHAREABLE;
+  MPU_InitStruct.Number           = MPU_REGION_NUMBER1;
+  MPU_InitStruct.TypeExtField     = MPU_TEX_LEVEL1;
+  HAL_MPU_ConfigRegion(&MPU_InitStruct);
+
+  HAL_MPU_Enable(MPU_PRIVILEGED_DEFAULT);
+}
+
+#ifdef USE_FULL_ASSERT
 void assert_failed(uint8_t *file, uint32_t line)
 {
-  /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-
-  /* Infinite loop */
-  while (1)
-  {
-  }
+  while (1) {}
 }
 #endif
-
-/**
-  * @}
-  */
-
-/**
-  * @}
-  */
-

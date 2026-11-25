@@ -281,6 +281,8 @@ void SpaceInvadersGame::reset() {
 }
 
 void SpaceInvadersGame::render(Display& display) {
+    display.setFrameMeta(ScreenMode::SPACE_INVADERS, static_cast<uint8_t>(state), 0, score, static_cast<uint8_t>(lives), hasShield ? 1 : 0);
+
     // Dark Space gradient
     display.drawGradientBackground(COLOR_GRAY_LIGHT, COLOR_GRAY_DARK, false);
 

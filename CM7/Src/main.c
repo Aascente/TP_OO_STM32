@@ -130,20 +130,47 @@ int main(void)
   BSP_LCD_DisplayOn(0);
   BSP_LED_On(LED_GREEN);
 
-  /* Initialize C++ Arcade GameEngine (Display, Joystick B3, Button B2) */
-  Arcade_Init();
+  /* Initialize shared D3 SRAM4 (0x38000000) before releasing Cortex-M4 */
+  __HAL_RCC_HSEM_CLK_ENABLE();
+  volatile uint32_t *shm = (volatile uint32_t *)0x38000000U;
+  shm[0] = 0U; /* magic = 0 until ready */
+  shm[1] = (Lcd_Ctx[0].PixelFormat == LCD_PIXEL_FORMAT_RGB565) ? 0U : 1U;
+  shm[2] = 0U; /* frameSeq */
+  shm[3] = 0U; /* cm4FramesDrawn */
+  __DMB();
+  shm[0] = 0x41524344U; /* ARCADE_MAGIC */
+  __DMB();
 
-  /* Main 60 FPS Arcade loop */
-  uint32_t ledTick = 0;
+  /* Initialize C++ Arcade GameEngine (Logic + EXTI Joystick B3 / Button B2) */
+  Arcade_Init();
+  Arcade_Loop(); /* Publish initial frameSeq = 1 */
+
+  /* Wake up Cortex-M4 (Display Renderer) via HSEM_ID_0 */
+  HAL_HSEM_FastTake(0U);
+  HAL_HSEM_Release(0U, 0U);
+
+  /* Main ~30 FPS Arcade logic loop on Cortex-M7 (fixed 33 ms frame period) */
+  uint32_t ledTick = 0U;
+  uint32_t nextFrameTick = HAL_GetTick();
   while (1)
   {
     Arcade_Loop();
-    if (++ledTick >= 30U)
+    if (++ledTick >= 15U)
     {
       BSP_LED_Toggle(LED_GREEN);
       ledTick = 0U;
     }
-    HAL_Delay(16);
+
+    nextFrameTick += 33U;
+    int32_t remaining = (int32_t)(nextFrameTick - HAL_GetTick());
+    if (remaining > 0)
+    {
+      HAL_Delay((uint32_t)remaining);
+    }
+    else
+    {
+      nextFrameTick = HAL_GetTick();
+    }
   }
 
 }
@@ -344,6 +371,20 @@ static void MPU_Config(void)
   MPU_InitStruct.SubRegionDisable = 0x0;
   MPU_InitStruct.DisableExec = MPU_INSTRUCTION_ACCESS_ENABLE;
   
+  HAL_MPU_ConfigRegion(&MPU_InitStruct);
+
+  /* Configure Shared D3 SRAM4 (64KB @ 0x38000000) as Non-Cacheable & Shareable for CM7<->CM4 */
+  MPU_InitStruct.Enable = MPU_REGION_ENABLE;
+  MPU_InitStruct.BaseAddress = 0x38000000U;
+  MPU_InitStruct.Size = MPU_REGION_SIZE_64KB;
+  MPU_InitStruct.AccessPermission = MPU_REGION_FULL_ACCESS;
+  MPU_InitStruct.IsBufferable = MPU_ACCESS_NOT_BUFFERABLE;
+  MPU_InitStruct.IsCacheable = MPU_ACCESS_NOT_CACHEABLE;
+  MPU_InitStruct.IsShareable = MPU_ACCESS_SHAREABLE;
+  MPU_InitStruct.Number = MPU_REGION_NUMBER3;
+  MPU_InitStruct.TypeExtField = MPU_TEX_LEVEL1;
+  MPU_InitStruct.SubRegionDisable = 0x0;
+  MPU_InitStruct.DisableExec = MPU_INSTRUCTION_ACCESS_DISABLE;
   HAL_MPU_ConfigRegion(&MPU_InitStruct);
 
   /* Enable the MPU */

@@ -1,13 +1,17 @@
 #pragma once
 #include <cstdint>
+#include "SharedArcade.hpp"
 
-#define CHROMA_KEY 0xF81F // Transparent color (RGB565 Magenta)
+#define CHROMA_KEY 0xF81F
 
 struct Sprite {
+    SpriteId id;
     int width;
     int height;
     const uint16_t* data;
 };
+
+const Sprite* getSpriteById(SpriteId id);
 
 extern const Sprite SPRITE_PONG_BALL;
 extern const Sprite SPRITE_PONG_PADDLE;

@@ -460,10 +460,5 @@
 			<type>1</type>
 			<locationURI>PARENT-2-PROJECT_LOC/CM7/GameEngine/Src/SpaceInvadersGame.cpp</locationURI>
 		</link>
-		<link>
-			<name>GameEngine/Sprites.cpp</name>
-			<type>1</type>
-			<locationURI>PARENT-2-PROJECT_LOC/CM7/GameEngine/Src/Sprites.cpp</locationURI>
-		</link>
 	</linkedResources>
 </projectDescription>

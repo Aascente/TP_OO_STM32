@@ -21,6 +21,7 @@
 	<natures>
 		<nature>com.st.stm32cube.ide.mcu.MCUProjectNature</nature>
 		<nature>org.eclipse.cdt.core.cnature</nature>
+		<nature>org.eclipse.cdt.core.ccnature</nature>
 		<nature>com.st.stm32cube.ide.mcu.MCUCubeIdeServicesRevAev2ProjectNature</nature>
 		<nature>com.st.stm32cube.ide.mcu.MCUNonUnderRootProjectNature</nature>
 		<nature>com.st.stm32cube.ide.mcu.MCUCubeExampleProjectNature</nature>
@@ -158,6 +159,21 @@
 			<name>Example/User/CM4/stm32h7xx_it.c</name>
 			<type>1</type>
 			<locationURI>PARENT-2-PROJECT_LOC/CM4/Src/stm32h7xx_it.c</locationURI>
+		</link>
+		<link>
+			<name>Example/User/CM4/CM4Renderer.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/CM4/Src/CM4Renderer.cpp</locationURI>
+		</link>
+		<link>
+			<name>GameEngine/Display.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/CM7/GameEngine/Src/Display.cpp</locationURI>
+		</link>
+		<link>
+			<name>GameEngine/Sprites.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/CM7/GameEngine/Src/Sprites.cpp</locationURI>
 		</link>
 	</linkedResources>
 </projectDescription>

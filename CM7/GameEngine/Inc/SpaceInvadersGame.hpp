@@ -26,7 +26,7 @@ private:
     Entity shield;
     bool hasShield;
     uint32_t shieldTimer;
-    static constexpr uint32_t SHIELD_DURATION_TICKS = 1250; // ~20 seconds at 60Hz
+    static constexpr uint32_t SHIELD_DURATION_TICKS = 600; // ~20 seconds at 30Hz
 
     int enemyDirection; // 1 = right, -1 = left
     int enemySpeed;

@@ -37,6 +37,8 @@ void ArcadeManager::updateMenu() {
 }
 
 void ArcadeManager::renderMenu() {
+    display.setFrameMeta(ScreenMode::MENU, 0, static_cast<uint8_t>(selectedGameIndex), 0, 0, 0);
+
     // Elegant dark gradient background
     display.drawGradientBackground(0x31A6, 0x0842, false);
 
@@ -77,10 +79,10 @@ void ArcadeManager::loop() {
         updateMenu();
         renderMenu();
     } else if (appState == AppState::PLAYING && activeGame) {
-        // Check for return to menu combo (Hold B2 + SEL for ~1 sec / 60 frames)
+        // Check for return to menu combo (Hold B2 + SEL for ~1 sec / 30 frames at 30Hz)
         if (input.isB2() && input.isSelect()) {
             returnToMenuCounter++;
-            if (returnToMenuCounter >= 60) {
+            if (returnToMenuCounter >= 30) {
                 returnToMenu();
                 display.present();
                 return;

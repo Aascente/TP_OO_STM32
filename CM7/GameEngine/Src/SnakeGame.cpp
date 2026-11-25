@@ -239,6 +239,8 @@ void SnakeGame::reset() {
 }
 
 void SnakeGame::render(Display& display) {
+    display.setFrameMeta(ScreenMode::SNAKE, static_cast<uint8_t>(state), 0, score, static_cast<uint8_t>(lives), 0);
+
     // Grey gradient with 20px grid
     display.drawGradientBackground(COLOR_GRAY_LIGHT, COLOR_GRAY_DARK, true, GRID_SIZE);
 
